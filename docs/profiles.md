@@ -89,9 +89,25 @@ from iso20022_readiness_suite_mcp.policies.engine import ProfileEngine
 from iso20022_readiness_suite_mcp.models import ClearingProfile
 
 engine = ProfileEngine.from_bundled()      # open baseline
+
+bank_pack = {
+    "profile_id": "AcmeBank",
+    "market_practice": "Acme house rules",
+    "supported_messages": ["pacs.008"],
+    "custom_rules": [
+        {
+            "rule_id": "acme-ccy-eur",
+            "description": "Settlement currency must be EUR.",
+            "locator": "Ccy",
+            "assertion": "equals:EUR",
+            "error_code": "ACME_CCY_NOT_EUR",
+        }
+    ],
+}
 engine.register(                           # premium / bank-specific pack
-    ClearingProfile.model_validate(my_bank_profile_json)
+    ClearingProfile.model_validate(bank_pack)
 )
+print([p.profile_id for p in engine.list_profiles()])
 ```
 
 Once registered, a pack's `profile_id` appears in `list_profiles` and is
