@@ -6,12 +6,12 @@
     "url": "https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp",
     "source": "github"
   },
-  "version": "0.0.1",
+  "version": "0.0.2",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "iso20022-readiness-suite-mcp",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "transport": {
         "type": "stdio"
       }

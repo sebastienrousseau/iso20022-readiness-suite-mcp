@@ -10,3 +10,11 @@ pydantic>=2.9,<3
 ruff==0.15.22
 black==26.5.1
 mypy>=1.11,<3.0
+# HTTP transport + OAuth 2.1 resource-server auth, and (evidence-pack)
+# Ed25519 signing -- runtime deps imported by the http subpackage /
+# signing module and exercised by the tests.
+pyjwt[crypto]>=2.10,<3
+httpx>=0.27,<1
+starlette>=0.40,<1
+uvicorn>=0.30,<1
+cryptography>=43,<47

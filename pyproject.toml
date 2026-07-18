@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iso20022-readiness-suite-mcp"
-version = "0.0.1"
+version = "0.0.2"
 description = "Orchestration MCP server: ISO 20022 readiness scoring, remediation, and bank-response simulation over the foundational MCP servers."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0"
@@ -21,6 +21,15 @@ python = ">=3.10,<4.0"
 mcp = ">=1.28.1"
 pydantic = ">=2.9,<3"
 defusedxml = ">=0.7,<0.8"
+# Optional streamable-HTTP transport (iso20022_readiness_suite_mcp.http):
+# OAuth 2.1 resource-server JWT validation needs PyJWT; [crypto] guarantees
+# RSA/EC JWKS support. httpx fetches the JWKS; starlette/uvicorn serve ASGI
+# (both already pulled in transitively by mcp, pinned here for the direct
+# imports in the http subpackage).
+pyjwt = { version = ">=2.10,<3", extras = ["crypto"] }
+httpx = ">=0.27,<1"
+starlette = ">=0.40,<1"
+uvicorn = ">=0.30,<1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=9.0.3,<10.0.0"

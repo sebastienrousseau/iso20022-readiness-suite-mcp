@@ -13,11 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""iso20022-readiness-suite-mcp: orchestration over the ISO 20022 MCP suite.
+"""Optional streamable-HTTP transport with OAuth 2.1 resource-server auth."""
 
-High-level readiness scoring, remediation, and bank-response simulation that
-compose the foundational MCP servers (iso20022-mcp, camt053-mcp, pain001-mcp,
-reconcile-mcp, bankstatementparser-mcp) via the meta-client pattern.
-"""
-
-__version__ = "0.0.2"
+from __future__ import annotations

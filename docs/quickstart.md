@@ -45,6 +45,11 @@ The command speaks MCP on stdin/stdout — it is meant to be launched by
 an MCP client, not used interactively. (`iso20022-readiness-suite-mcp
 --version` prints the version and exits.)
 
+For shared, multi-tenant deployments there is also an optional
+streamable-HTTP transport (`--transport=http`) with OAuth 2.1 (RFC 9728)
+or a dev-mode token; see [`transport.md`](transport.md). This quickstart
+uses the default stdio transport, which needs no authentication.
+
 ## 3. Register it with your MCP client
 
 ### Claude Desktop
@@ -126,6 +131,8 @@ asyncio.run(main())
   pattern and how to point the gateway at local or remote sub-servers.
 - Read [`profiles.md`](profiles.md) for the clearing profiles and how
   premium rule packs plug in.
+- Read [`transport.md`](transport.md) to run the gateway over the
+  optional HTTP transport with OAuth 2.1 (RFC 9728) auth.
 - Browse the full [tool catalog](https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp/blob/main/README.md#tools).
 
 ## Troubleshooting

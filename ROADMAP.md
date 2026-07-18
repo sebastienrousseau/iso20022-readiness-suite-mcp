@@ -11,7 +11,17 @@ foundational suite servers, which it composes into readiness scoring,
 automated remediation, clearing-profile linting, and bank-response simulation
 ahead of the November 2026 ISO 20022 milestones.
 
-## Where we are (v0.0.1, shipped 2026-07-18)
+## Where we are (v0.0.2, shipped 2026-07-18)
+
+- **Optional streamable-HTTP transport** (delivered in v0.0.2):
+  `iso20022-readiness-suite-mcp --transport=http --bind=…` alongside the
+  default stdio, with **OAuth 2.1 resource-server auth (RFC 9728)** when the
+  `ISO20022_READINESS_OAUTH_*` variables are set (JWKS validation, `iss` /
+  `aud` / `exp` / `nbf`, required scopes, protected-resource metadata), a
+  static dev-mode bearer token fallback, and an optional `X-MCP-Tenant` header
+  forwarded into a per-request tenant context.
+
+## Shipped in v0.0.1 (2026-07-18)
 
 - **4 MCP tools** over stdio, each a thin wrapper over an orchestrator:
   - Profile discovery: `list_profiles` (CBPR+, SEPA_Instant, FedNow,
@@ -36,7 +46,7 @@ ahead of the November 2026 ISO 20022 milestones.
   SPDX 2.3 + pip-licenses SBOMs on every GitHub release, NIST SP 800-218 SSDF
   practice mapping in `SECURITY.md`.
 
-## Fast-follow — sister servers, HTTP transport, entitlement gating
+## Fast-follow — sister servers, entitlement gating
 
 Goal: broaden the gateway and support a shared, multi-tenant deployment shape.
 
@@ -47,11 +57,6 @@ Goal: broaden the gateway and support a shared, multi-tenant deployment shape.
 - **`iso20022-evidence-pack-mcp`** (new sibling server): compile the
   readiness findings, remediation diffs, and simulated bank responses into a
   signed, exportable evidence pack for audit and certification workflows.
-- **HTTP/SSE transport variant**:
-  `iso20022-readiness-suite-mcp --transport=http --bind=…` alongside the
-  default stdio, with an optional tenant header forwarded into the
-  tool-visible `Context` for multi-tenant scoping, and OAuth 2.1
-  resource-server auth (RFC 9728) on the HTTP transport.
 - **Premium rule-pack entitlement gating**: gate the higher-tier proprietary
   clearing profiles / remediation packs behind an entitlement claim (matching
   the profile engine's `register()` seam), so operators can license the
@@ -74,7 +79,7 @@ Goal: post-Nov-2026, field-tested behaviour.
 
 - **Embedded LLM**: this server delegates all inference to the client's model
   via MCP; no bundled LLM weights, no hosted inference endpoint.
-- **OAuth provider integration**: the planned HTTP transport authenticates by
+- **OAuth provider integration**: the HTTP transport authenticates by
   validating tokens from your existing authorization server (Okta, Auth0,
   Entra ID, ...); running the authorization server is the operator's job.
 - **Reimplementing sub-server logic**: message generation, parsing, and

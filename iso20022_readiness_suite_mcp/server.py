@@ -183,18 +183,40 @@ def simulate_bank_response(
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Run the MCP server over stdio."""
+    """Run the MCP server over stdio (default) or streamable HTTP.
+
+    ``--transport=http`` serves the authenticated streamable-HTTP transport
+    (OAuth 2.1 resource server, or a static dev-mode bearer token); see
+    :mod:`iso20022_readiness_suite_mcp.http.transport`.
+    """
     parser = argparse.ArgumentParser(
         prog="iso20022-readiness-suite-mcp",
-        description="ISO 20022 readiness/orchestration MCP server (stdio).",
+        description="ISO 20022 readiness/orchestration MCP server.",
     )
     parser.add_argument(
         "--version",
         action="version",
         version=f"iso20022-readiness-suite-mcp {__version__}",
     )
-    parser.parse_args(argv)
-    server.run()
+    parser.add_argument(
+        "--transport",
+        choices=("stdio", "http"),
+        default="stdio",
+        help="Transport to serve (default: stdio).",
+    )
+    parser.add_argument(
+        "--bind",
+        default=None,
+        metavar="HOST:PORT",
+        help="Address for --transport=http (default: 127.0.0.1:8080).",
+    )
+    args = parser.parse_args(argv)
+    if args.transport == "http":
+        from iso20022_readiness_suite_mcp.http import transport
+
+        transport.run_http(server, args.bind or transport.DEFAULT_BIND)
+    else:
+        server.run()
 
 
 if __name__ == "__main__":  # pragma: no cover

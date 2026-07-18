@@ -34,6 +34,7 @@ theme:
 nav:
   - Home: index.md
   - Quickstart: quickstart.md
+  - HTTP transport & auth: transport.md
   - Orchestration: orchestration.md
   - Clearing profiles: profiles.md
 

@@ -89,3 +89,31 @@ def test_main_runs_server(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(server_mod.server, "run", lambda: called.append(True))
     server_mod.main([])
     assert called == [True]
+
+
+def test_main_http_default_bind(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--transport=http`` hands off to ``run_http`` with the default bind."""
+    from iso20022_readiness_suite_mcp.http import transport
+
+    calls: list[tuple[object, str]] = []
+    monkeypatch.setattr(
+        transport,
+        "run_http",
+        lambda srv, bind: calls.append((srv, bind)),
+    )
+    server_mod.main(["--transport=http"])
+    assert calls == [(server_mod.server, transport.DEFAULT_BIND)]
+
+
+def test_main_http_explicit_bind(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--bind`` is forwarded to ``run_http`` verbatim."""
+    from iso20022_readiness_suite_mcp.http import transport
+
+    calls: list[tuple[object, str]] = []
+    monkeypatch.setattr(
+        transport,
+        "run_http",
+        lambda srv, bind: calls.append((srv, bind)),
+    )
+    server_mod.main(["--transport=http", "--bind=0.0.0.0:9999"])
+    assert calls == [(server_mod.server, "0.0.0.0:9999")]

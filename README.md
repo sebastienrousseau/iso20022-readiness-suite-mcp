@@ -22,8 +22,8 @@ agent can drive to answer "is this payment ready, and if not, fix it".
 > tomorrow. `iso20022-readiness-suite-mcp` puts a single readiness gateway in
 > front of your agent: `run_readiness_check` scores a payload against a
 > clearing profile, `remediate_payload` proposes the compliant form, and
-> `simulate_bank_response` mocks how a bank would answer. **v0.0.1**, stdio
-> transport, 4 tools, Python 3.10+.
+> `simulate_bank_response` mocks how a bank would answer. **v0.0.2**, stdio
+> (default) or streamable HTTP, 4 tools, Python 3.10+.
 
 ## Contents
 
@@ -32,6 +32,7 @@ agent can drive to answer "is this payment ready, and if not, fix it".
 - [Install](#install)
 - [Quick Start](#quick-start)
 - [Tools](#tools)
+- [HTTP transport & authentication](#http-transport--authentication)
 - [Orchestration & the meta-client pattern](#orchestration--the-meta-client-pattern)
 - [Open-core vs premium](#open-core-vs-premium)
 - [When not to use iso20022-readiness-suite-mcp](#when-not-to-use-iso20022-readiness-suite-mcp)
@@ -207,6 +208,59 @@ sub-server error they return an `{"error": ...}` payload rather than raising.
 > installed / resolvable for the two tools to succeed. `list_profiles` and
 > `simulate_bank_response` compute purely locally and always work standalone.
 
+## HTTP transport & authentication
+
+By default the gateway speaks **stdio** — launched by a local MCP client, one
+process per operator, with no network surface and **no authentication needed**:
+
+```sh
+iso20022-readiness-suite-mcp                 # stdio (default)
+```
+
+For shared, multi-tenant deployments it also offers an **optional
+streamable-HTTP transport**. The default `--bind` is loopback-only
+(`127.0.0.1:8080`); expose it explicitly with `--bind=0.0.0.0:8080`:
+
+```sh
+iso20022-readiness-suite-mcp --transport=http --bind=0.0.0.0:8080
+```
+
+The HTTP transport **requires authentication** — starting it with none
+configured is refused. Two modes apply, strongest first.
+
+**OAuth 2.1 resource server (RFC 9728) — production.** Set the
+`ISO20022_READINESS_OAUTH_*` environment variables and the server validates
+`Authorization: Bearer <jwt>` against your authorization server's JWKS:
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `ISO20022_READINESS_OAUTH_ISSUER` | yes | Authorization server issuer; the JWT `iss` must match it exactly. |
+| `ISO20022_READINESS_OAUTH_AUDIENCE` | yes | This server's canonical resource URI (RFC 8707); the JWT `aud` must contain it. |
+| `ISO20022_READINESS_OAUTH_JWKS_URL` | no | JWKS document URL (default `<issuer>/.well-known/jwks.json`). |
+| `ISO20022_READINESS_OAUTH_SCOPES` | no | Space-separated scopes every token must carry. |
+
+JWTs are checked for signature (JWKS, with key rotation on an unknown `kid`),
+`iss` / `aud` / `exp` / `nbf`, and the required scopes. The RFC 9728
+protected-resource metadata is served unauthenticated at
+`/.well-known/oauth-protected-resource`. Rejections return `401` (`403` for
+`insufficient_scope`) with a `WWW-Authenticate` challenge pointing at that
+metadata.
+
+**Static bearer token — dev mode only.** When no OAuth variables are set, a
+single shared secret in `ISO20022_READINESS_TOKEN` is accepted instead
+(compared with `hmac.compare_digest`). This is explicitly dev-mode — one shared
+secret, no expiry, no scopes — and is ignored when OAuth is also configured:
+
+```sh
+ISO20022_READINESS_TOKEN=s3cret \
+  iso20022-readiness-suite-mcp --transport=http --bind=127.0.0.1:8080
+```
+
+HTTP callers may send an optional `X-MCP-Tenant` header, forwarded into a
+per-request tenant context; the authenticated token's scopes are exposed to
+tools too, so tool code can scope behaviour without branching on the transport.
+See [`docs/transport.md`](docs/transport.md) for the full setup.
+
 ## Orchestration & the meta-client pattern
 
 The gateway implements the "server that is also a client" half of the
@@ -265,10 +319,11 @@ open-source tier is time-limited or feature-gated.
   sub-servers.** Those two tools require the foundational servers to be
   resolvable (via `uvx` or an overridden command map). If you cannot install
   them, you are limited to `list_profiles` and `simulate_bank_response`.
-- **You need a long-lived network service.** v0.0.1 speaks **stdio only** —
-  one process per operator, launched by the client, no network surface. An
-  HTTP/OAuth transport for shared, multi-tenant deployments is on the
-  [roadmap](ROADMAP.md), not in this release.
+- **You need a long-lived network service.** stdio (the default) is one
+  process per operator, launched by the client, with no network surface. For
+  shared, multi-tenant deployments use the optional streamable-HTTP transport
+  (`--transport=http`, with OAuth 2.1 or a dev-mode token) — see
+  [HTTP transport & authentication](#http-transport--authentication).
 - **You need streaming responses.** Tool calls return whole values, not
   streams.
 
@@ -318,9 +373,10 @@ Vulnerability Reporting, not public issues.
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
 - [`SECURITY.md`](SECURITY.md) — disclosure + supported versions
 - [`SUPPORT.md`](SUPPORT.md) — how to get help
-- [`ROADMAP.md`](ROADMAP.md) — what's next (sister servers, HTTP/OAuth transport, premium rule-pack entitlement)
+- [`ROADMAP.md`](ROADMAP.md) — what's next (sister servers, premium rule-pack entitlement)
 - [`MAINTAINERS.md`](MAINTAINERS.md) — who can merge
 - [`docs/quickstart.md`](docs/quickstart.md) — 10-minute install → first conversation
+- [`docs/transport.md`](docs/transport.md) — the HTTP transport and OAuth 2.1 (RFC 9728) auth setup
 - [`docs/orchestration.md`](docs/orchestration.md) — the meta-client pattern and pointing the gateway at local/remote sub-servers
 - [`docs/profiles.md`](docs/profiles.md) — the clearing profiles and how premium rule packs plug in
 - [`glama.json`](glama.json) — Glama directory manifest
