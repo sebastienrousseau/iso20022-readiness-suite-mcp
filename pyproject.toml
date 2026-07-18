@@ -28,7 +28,7 @@ defusedxml = ">=0.7,<0.8"
 # imports in the http subpackage).
 pyjwt = { version = ">=2.10,<3", extras = ["crypto"] }
 httpx = ">=0.27,<1"
-starlette = ">=0.40,<1"
+starlette = ">=1.3.1,<2"
 uvicorn = ">=0.30,<1"
 
 [tool.poetry.group.dev.dependencies]
