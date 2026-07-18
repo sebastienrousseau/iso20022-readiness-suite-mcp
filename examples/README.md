@@ -18,6 +18,7 @@ python examples/<name>.py
 | [`06_simulate_reject.py`](06_simulate_reject.py) | Generate a rejection (RJCT) with a reason code | none (local) |
 | [`07_apply_profile.py`](07_apply_profile.py) | Lint a payload against a clearing profile | none |
 | [`08_score_and_summary.py`](08_score_and_summary.py) | Score findings and render an evidence summary | none |
+| [`09_http_oauth_config.py`](09_http_oauth_config.py) | The HTTP transport's OAuth 2.1 (RFC 9728) config + metadata | none |
 
 ## Stub sub-servers
 
