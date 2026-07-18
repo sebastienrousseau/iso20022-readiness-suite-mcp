@@ -1,0 +1,79 @@
+name: Docs
+
+# Build the mkdocs-material documentation and, on pushes to main, deploy it to
+# GitHub Pages. Pull requests BUILD ONLY (no deploy), so a PR validates that
+# the docs build cleanly without requiring Pages to be enabled.
+#
+# The push job enables Pages automatically (configure-pages `enablement: true`),
+# so no manual Settings -> Pages step is required.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Allow one concurrent deployment; queue (do not cancel) in-progress runs.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install docs toolchain (hash-pinned)
+        run: pip install --require-hashes -r requirements/docs.txt
+
+      - name: Configure Pages
+        # `enablement: true` turns GitHub Pages on (build_type=workflow) on the
+        # first run, so no manual Settings -> Pages step is required.
+        if: github.event_name == 'push'
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+        with:
+          enablement: true
+
+      - name: Build the mkdocs documentation
+        # --strict turns warnings (e.g. broken links) into errors so a broken
+        # build fails the PR check.
+        run: mkdocs build --strict -d _site
+
+      - name: Upload the Pages artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

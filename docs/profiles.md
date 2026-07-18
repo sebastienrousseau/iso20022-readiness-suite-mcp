@@ -98,7 +98,7 @@ Once registered, a pack's `profile_id` appears in `list_profiles` and is
 accepted as a `target_profile` by `run_readiness_check` and
 `remediate_payload` — the tool surface does not change.
 
-On the [roadmap](../ROADMAP.md), the higher-tier packs are gated behind
+On the [roadmap](https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp/blob/main/ROADMAP.md), the higher-tier packs are gated behind
 an **entitlement claim** (so operators license the scheme packs they
 need), and a sister `iso20022-bank-profile-mcp` server will manage and
 serve bank-specific packs as a first-class server the gateway consumes.

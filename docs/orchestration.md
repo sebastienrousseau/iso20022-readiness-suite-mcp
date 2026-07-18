@@ -121,11 +121,11 @@ fresh session per call.
 
 - **One process per call.** Each sub-server call is an isolated,
   short-lived session. There is no long-lived pool in v0.0.1; a shared,
-  multi-tenant HTTP transport is on the [roadmap](../ROADMAP.md).
+  multi-tenant HTTP transport is on the [roadmap](https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp/blob/main/ROADMAP.md).
 - **Least privilege.** The gateway runs as the local process owner with
   no network listener; the sub-servers it launches inherit that
   environment. A maliciously configured command map is out of scope (see
-  [`SECURITY.md`](../SECURITY.md)).
+  [`SECURITY.md`](https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp/blob/main/SECURITY.md)).
 - **Failure is visible.** If a readiness check comes back with a
   `RS_SUBSERVER_UNAVAILABLE` finding, the named sub-server was not
   resolvable — install it or fix its launch command.

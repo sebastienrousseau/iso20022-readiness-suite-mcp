@@ -126,7 +126,7 @@ asyncio.run(main())
   pattern and how to point the gateway at local or remote sub-servers.
 - Read [`profiles.md`](profiles.md) for the clearing profiles and how
   premium rule packs plug in.
-- Browse the full [tool catalog](../README.md#tools).
+- Browse the full [tool catalog](https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp/blob/main/README.md#tools).
 
 ## Troubleshooting
 
