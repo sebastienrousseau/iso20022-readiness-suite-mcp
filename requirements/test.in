@@ -12,6 +12,6 @@ interrogate>=1.7
 # signing module and exercised by the tests.
 pyjwt[crypto]>=2.10,<3
 httpx>=0.27,<1
-starlette>=0.40,<1
+starlette>=1.3.1,<2
 uvicorn>=0.30,<1
 cryptography>=43,<47
