@@ -1,0 +1,47 @@
+{
+  "$schema": "https://glama.ai/api/mcp/v1/schemas/glama.json",
+  "maintainers": [
+    "sebastienrousseau"
+  ],
+  "title": "iso20022-readiness-suite-mcp",
+  "display_name": "ISO 20022 Readiness Suite MCP",
+  "description": "High-level orchestration Model Context Protocol server for the ISO 20022 MCP Suite: the white-label ISO 20022 readiness and testing gateway. It is an MCP server to the outer agent and an MCP client to the foundational suite servers (iso20022-mcp, camt053-mcp, pain001-mcp, reconcile-mcp, bankstatementparser-mcp, structured-address-fix-mcp), which it spawns over stdio via the meta-client pattern. Exposes 4 tools over stdio: clearing-profile discovery for CBPR+, SEPA_Instant, FedNow, and Generic (list_profiles); detect/validate/profile-lint/score a payload's Nov 2026 readiness (run_readiness_check); automated remediation such as structured-address fixes (remediate_payload); and pacs.002 bank-response simulation for ACCP/RJCT/PDNG outcomes (simulate_bank_response). list_profiles and simulate_bank_response run standalone; run_readiness_check and remediate_payload reach the underlying servers, which must be uvx-resolvable. SLSA Build L3 provenance + PEP 740 sigstore attestations + CycloneDX/SPDX/licenses SBOMs on every release; NIST SP 800-218 SSDF practice IDs mapped in SECURITY.md.",
+  "version": "0.0.1",
+  "repository": "https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp",
+  "homepage": "https://sebastienrousseau.github.io/iso20022-readiness-suite-mcp/",
+  "license": "Apache-2.0",
+  "language": "Python",
+  "runtime": "python",
+  "categories": [
+    "finance"
+  ],
+  "tags": [
+    "iso20022",
+    "orchestration",
+    "meta-client",
+    "readiness",
+    "remediation",
+    "cbpr-plus",
+    "sepa-instant",
+    "fednow",
+    "pacs008",
+    "pain001",
+    "camt053",
+    "bank-response-simulation",
+    "nov-2026-cliff",
+    "payment-validation",
+    "fastmcp",
+    "financial-services",
+    "fintech",
+    "slsa",
+    "sigstore"
+  ],
+  "mcpServers": {
+    "iso20022-readiness-suite": {
+      "command": "iso20022-readiness-suite-mcp"
+    }
+  },
+  "installation": {
+    "pip": "pip install iso20022-readiness-suite-mcp"
+  }
+}

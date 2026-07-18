@@ -1,0 +1,57 @@
+name: Scorecard supply-chain security
+
+# OpenSSF Scorecard. Runs the standard ossf/scorecard-action to assess the
+# repository's supply-chain security posture and publishes the results.
+#
+# Deliberately does NOT trigger on pull_request: Scorecard's code-scanning
+# (SARIF) findings would otherwise surface as PR checks and could block merges
+# on pre-existing findings unrelated to a given change. It runs on a schedule,
+# on push to the default branch, and when branch protection rules change.
+
+on:
+  schedule:
+    - cron: "27 4 * * 1"
+  push:
+    branches: [main]
+  branch_protection_rule:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed to upload the results to the code-scanning dashboard.
+      security-events: write
+      # Needed to publish results and get a badge (OIDC token).
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publish results to the OpenSSF REST API so the README badge resolves
+          # and the public Scorecard viewer shows the score.
+          publish_results: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code-scanning
+        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v3
+        with:
+          sarif_file: results.sarif

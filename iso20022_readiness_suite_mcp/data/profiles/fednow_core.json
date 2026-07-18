@@ -1,0 +1,8 @@
+{
+  "profile_id": "FedNow",
+  "market_practice": "FedNow Core",
+  "supported_messages": ["pacs.008", "pacs.002"],
+  "custom_rules": [
+    {"rule_id": "fednow-ctry", "description": "FedNow requires a structured Ctry element on party addresses.", "locator": "Ctry", "assertion": "required", "error_code": "FEDNOW_MISSING_COUNTRY", "severity": "error"}
+  ]
+}

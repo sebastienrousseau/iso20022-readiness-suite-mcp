@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Hash-pinned install (supply-chain hardening). Every runtime and test
+      # dependency is on PyPI, so requirements/test.txt is fully hash-pinned.
+      # The local package itself is imported via ``python -m pytest`` (repo
+      # root on sys.path) so no unpinnable ``pip install -e .`` is required.
+      - name: Install dependencies (hash-pinned)
+        run: pip install --require-hashes -r requirements/test.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+
+      - name: Enforce 100% docstring coverage
+        run: interrogate -c pyproject.toml iso20022_readiness_suite_mcp
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tools (hash-pinned)
+        run: pip install --require-hashes -r requirements/lint.txt
+
+      - name: Ruff check
+        run: ruff check iso20022_readiness_suite_mcp/
+
+      - name: Black check
+        run: black --check iso20022_readiness_suite_mcp/ tests/
+
+      - name: Mypy
+        run: mypy iso20022_readiness_suite_mcp/
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Install bandit (hash-pinned)
+        run: pip install --require-hashes -r requirements/security.txt
+      - name: Bandit
+        run: bandit -r iso20022_readiness_suite_mcp/ -ll

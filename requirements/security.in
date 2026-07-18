@@ -1,0 +1,3 @@
+# Static security scanner for the CI "security" job.
+# Compiled to security.txt with hashes via: make pip-compile
+bandit>=1.7.0

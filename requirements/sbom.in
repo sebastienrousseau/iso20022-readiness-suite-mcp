@@ -1,0 +1,4 @@
+# SBOM + license manifest tooling for the release "sbom" job.
+# Compiled to sbom.txt with hashes via: make pip-compile
+cyclonedx-bom
+pip-licenses

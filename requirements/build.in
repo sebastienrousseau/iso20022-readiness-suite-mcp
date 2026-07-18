@@ -1,0 +1,4 @@
+# Build/publish tooling for the release "publish" + "sbom" jobs.
+# Compiled to build.txt with hashes via: make pip-compile
+poetry
+twine
