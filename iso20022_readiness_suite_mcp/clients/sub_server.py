@@ -67,7 +67,6 @@ class SubServerInvoker(Protocol):
         self, server: str, tool: str, arguments: Mapping[str, Any]
     ) -> ToolOutcome:
         """Invoke ``tool`` on ``server`` and return its outcome as data."""
-        ...
 
 
 def _decode_content(content: list[Any]) -> Any:
