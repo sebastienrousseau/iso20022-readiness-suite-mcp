@@ -17,16 +17,26 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
-
-import tomllib
 
 from iso20022_readiness_suite_mcp import __version__
 
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 
 
+def _pyproject_version() -> str:
+    """Extract the poetry version from pyproject.toml via regex.
+
+    Uses a regex rather than ``tomllib`` so the test runs identically on
+    Python 3.10 (where ``tomllib`` is not in the standard library) and 3.11+.
+    """
+    text = _PYPROJECT.read_text(encoding="utf-8")
+    match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    assert match is not None, "no version found in pyproject.toml"
+    return match.group(1)
+
+
 def test_version_matches_pyproject() -> None:
     """``__version__`` is exactly the poetry version in pyproject.toml."""
-    data = tomllib.loads(_PYPROJECT.read_text(encoding="utf-8"))
-    assert __version__ == data["tool"]["poetry"]["version"]
+    assert __version__ == _pyproject_version()
