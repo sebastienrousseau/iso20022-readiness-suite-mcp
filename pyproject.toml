@@ -18,7 +18,7 @@ iso20022-readiness-suite-mcp = "iso20022_readiness_suite_mcp.server:main"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-mcp = ">=1.28.1"
+mcp = ">=1.28.1,<2"
 pydantic = ">=2.9,<3"
 defusedxml = ">=0.7,<0.8"
 # Optional streamable-HTTP transport (iso20022_readiness_suite_mcp.http):
