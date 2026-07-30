@@ -29,6 +29,7 @@ in an MCP client. The transport is stdio (FastMCP's default).
 from __future__ import annotations
 
 import argparse
+import json
 from typing import Annotated, Any
 
 from mcp.server.fastmcp import FastMCP
@@ -40,7 +41,9 @@ from iso20022_readiness_suite_mcp.clients.sub_server import (
     StdioSubServerInvoker,
     SubServerInvoker,
 )
+from iso20022_readiness_suite_mcp.errors import UnknownProfileError
 from iso20022_readiness_suite_mcp.models import (
+    ClearingProfile,
     ReadinessCheckRequest,
     RemediateRequest,
     SimulateResponseRequest,
@@ -180,6 +183,103 @@ def simulate_bank_response(
         reason_code=reason_code,
     )
     return simulator.simulate_bank_response(request).model_dump(mode="json")
+
+
+@server.prompt(title="ISO 20022 readiness review")
+def readiness_review(target_profile: str = "CBPR+") -> str:
+    """Guide an agent through the end-to-end readiness workflow.
+
+    Args:
+        target_profile: The clearing profile the review should target
+            (defaults to ``CBPR+``).
+    """
+    if target_profile == "Generic":
+        profile_note = (
+            "The 'Generic' baseline applies structural (XSD-level) checks "
+            "only; expect no market-practice findings. Switch to a scheme "
+            "profile (e.g. 'CBPR+', 'FedNow', 'SEPA_Instant') for "
+            "clearing-specific rules."
+        )
+    else:
+        profile_note = (
+            f"The {target_profile!r} profile layers market-practice "
+            "assertions on top of structural validation, so findings may "
+            "include scheme-specific rules beyond raw XSD errors."
+        )
+    return (
+        "You are reviewing an ISO 20022 payload for readiness against the "
+        f"{target_profile!r} clearing profile. Work the tools in order:\n\n"
+        "1. Call `list_profiles` to confirm "
+        f"{target_profile!r} is registered and discover the exact "
+        "`target_profile` value the other tools expect.\n"
+        "2. Call `run_readiness_check` with the raw `payload_content` and "
+        f"`target_profile={target_profile!r}` to detect the message type, "
+        "validate it, profile-lint it, and get a readiness score plus "
+        "structural errors and profile findings.\n"
+        "3. If the check reports structural errors or profile findings, "
+        "call `remediate_payload` with the same `payload_content` and "
+        f"`target_profile={target_profile!r}` to apply automated fixes "
+        "(e.g. the Nov 2026 structured-address requirements), then re-run "
+        "step 2 on the mutated payload to confirm the findings cleared.\n"
+        "4. Once the payload is clean, call `simulate_bank_response` with "
+        "the initiation payload and a `desired_behavior` of 'ACCP', "
+        "'RJCT', or 'PDNG' (supplying a `reason_code` such as 'AM04' when "
+        "simulating 'RJCT') to preview the pacs.002 status report a bank "
+        "would return.\n\n"
+        f"{profile_note}"
+    )
+
+
+@server.resource("readiness://profiles", title="Clearing profile catalogue")
+def readiness_profiles_resource() -> str:
+    """Expose the full clearing-profile catalogue as a JSON resource.
+
+    Reuses the :func:`list_profiles` tool so the resource and the tool never
+    drift apart.
+    """
+    return json.dumps(list_profiles())
+
+
+def _lookup_profile(profile_id: str) -> ClearingProfile:
+    """Return the registered profile for ``profile_id``.
+
+    Raises :class:`UnknownProfileError` when no such profile is registered.
+    """
+    for profile in _engine.list_profiles():
+        if profile.profile_id == profile_id:
+            return profile
+    raise UnknownProfileError(
+        f"No clearing profile registered for {profile_id!r}.",
+        locator=f"readiness://profile/{profile_id}",
+        context={
+            "available": sorted(p.profile_id for p in _engine.list_profiles())
+        },
+    )
+
+
+@server.resource(
+    "readiness://profile/{profile_id}", title="Clearing profile summary"
+)
+def readiness_profile_resource(profile_id: str) -> str:
+    """Summarise a single clearing profile addressed by ``profile_id``.
+
+    Returns a JSON summary of the profile, or an ``{"error": ...}``-shaped
+    :class:`~iso20022_readiness_suite_mcp.errors.ErrorDetail` payload (never a
+    traceback) when the profile is not registered.
+    """
+    try:
+        profile = _lookup_profile(profile_id)
+    except UnknownProfileError as exc:
+        return json.dumps({"error": exc.to_detail().model_dump(mode="json")})
+    return json.dumps(
+        {
+            "profile_id": profile.profile_id,
+            "market_practice": profile.market_practice,
+            "supported_messages": list(profile.supported_messages),
+            "rule_count": len(profile.custom_rules),
+            "rule_ids": [rule.rule_id for rule in profile.custom_rules],
+        }
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
