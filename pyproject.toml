@@ -30,6 +30,17 @@ pyjwt = { version = ">=2.10,<3", extras = ["crypto"] }
 httpx = ">=0.27,<1"
 starlette = ">=1.3.1,<2"
 uvicorn = ">=0.30,<1"
+# Optional OpenTelemetry tracing (iso20022_readiness_suite_mcp.tracing),
+# enabled via the [otel] extra and the --otel-endpoint flag. Kept out of the
+# default install so the dependency stays opt-in.
+opentelemetry-sdk = { version = ">=1.20,<2", optional = true }
+opentelemetry-exporter-otlp-proto-http = { version = ">=1.20,<2", optional = true }
+
+[tool.poetry.extras]
+otel = [
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp-proto-http",
+]
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=9.0.3,<10.0.0"
@@ -111,6 +122,12 @@ exclude = [".venv/", ".eggs/"]
 
 [[tool.mypy.overrides]]
 module = "mcp.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# opentelemetry is an optional ([otel] extra) dependency, lazily imported in
+# tracing.py; don't fail the lint job (which installs without the extra).
+module = "opentelemetry.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
