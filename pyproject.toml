@@ -125,6 +125,12 @@ module = "mcp.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# opentelemetry is an optional ([otel] extra) dependency, lazily imported in
+# tracing.py; don't fail the lint job (which installs without the extra).
+module = "opentelemetry.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "defusedxml.*"
 ignore_missing_imports = true
 

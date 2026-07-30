@@ -114,6 +114,15 @@ def init_tracing(
     return True
 
 
+def provider() -> Any:
+    """Return the active ``TracerProvider``, or ``None`` before init.
+
+    Exposed so callers/tests can attach span processors without reaching into
+    module state; also gives the module a read of ``_provider``.
+    """
+    return _provider
+
+
 @contextmanager
 def trace_span(name: str) -> Iterator[Any]:
     """Span ``name`` for the duration of the ``with`` block.
