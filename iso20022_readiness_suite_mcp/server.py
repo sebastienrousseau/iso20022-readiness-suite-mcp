@@ -30,13 +30,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from typing import Annotated, Any
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from iso20022_readiness_suite_mcp import __version__
+from iso20022_readiness_suite_mcp import __version__, tracing
 from iso20022_readiness_suite_mcp.clients.sub_server import (
     StdioSubServerInvoker,
     SubServerInvoker,
@@ -85,6 +86,7 @@ _PURE_READ = ToolAnnotations(
 
 
 @server.tool(title="List clearing profiles", annotations=_PURE_READ)
+@tracing.traced_tool("list_profiles")
 def list_profiles() -> list[dict[str, Any]]:
     """List the available clearing profiles (CBPR+, SEPA_Instant, ...).
 
@@ -95,6 +97,7 @@ def list_profiles() -> list[dict[str, Any]]:
 
 
 @server.tool(title="Run ISO 20022 readiness check", annotations=_ORCHESTRATE)
+@tracing.traced_tool("run_readiness_check")
 async def run_readiness_check(
     payload_content: Annotated[
         str, Field(description="Raw ISO 20022 payload text (not a path).")
@@ -128,6 +131,7 @@ async def run_readiness_check(
 
 
 @server.tool(title="Remediate a payload", annotations=_ORCHESTRATE)
+@tracing.traced_tool("remediate_payload")
 async def remediate_payload(
     payload_content: Annotated[
         str, Field(description="Raw ISO 20022 payload text to remediate.")
@@ -150,6 +154,7 @@ async def remediate_payload(
 
 
 @server.tool(title="Simulate a bank response", annotations=_LOCAL)
+@tracing.traced_tool("simulate_bank_response")
 def simulate_bank_response(
     inbound_payload: Annotated[
         str, Field(description="The inbound initiation payload text.")
@@ -310,7 +315,17 @@ def main(argv: list[str] | None = None) -> None:
         metavar="HOST:PORT",
         help="Address for --transport=http (default: 127.0.0.1:8080).",
     )
+    parser.add_argument(
+        "--otel-endpoint",
+        default=None,
+        metavar="URL",
+        help="Enable OpenTelemetry tracing and export spans to this OTLP/HTTP "
+        "endpoint (requires the [otel] extra). Falls back to "
+        "OTEL_EXPORTER_OTLP_ENDPOINT.",
+    )
     args = parser.parse_args(argv)
+    if args.otel_endpoint or os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
+        tracing.init_tracing(endpoint=args.otel_endpoint)
     if args.transport == "http":
         from iso20022_readiness_suite_mcp.http import transport
 

@@ -105,6 +105,40 @@ def test_main_http_default_bind(monkeypatch: pytest.MonkeyPatch) -> None:
     assert calls == [(server_mod.server, transport.DEFAULT_BIND)]
 
 
+def test_main_otel_endpoint_initialises_tracing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``--otel-endpoint`` initialises tracing before serving stdio."""
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+    init_calls: list[str | None] = []
+    monkeypatch.setattr(
+        server_mod.tracing,
+        "init_tracing",
+        lambda endpoint=None: init_calls.append(endpoint) or True,
+    )
+    ran: list[bool] = []
+    monkeypatch.setattr(server_mod.server, "run", lambda: ran.append(True))
+    server_mod.main(["--otel-endpoint=http://localhost:4318/v1/traces"])
+    assert init_calls == ["http://localhost:4318/v1/traces"]
+    assert ran == [True]
+
+
+def test_main_no_otel_skips_tracing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without an endpoint (arg or env) tracing is never initialised."""
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+    init_calls: list[str | None] = []
+    monkeypatch.setattr(
+        server_mod.tracing,
+        "init_tracing",
+        lambda endpoint=None: init_calls.append(endpoint) or True,
+    )
+    monkeypatch.setattr(server_mod.server, "run", lambda: None)
+    server_mod.main([])
+    assert init_calls == []
+
+
 def test_main_http_explicit_bind(monkeypatch: pytest.MonkeyPatch) -> None:
     """``--bind`` is forwarded to ``run_http`` verbatim."""
     from iso20022_readiness_suite_mcp.http import transport
