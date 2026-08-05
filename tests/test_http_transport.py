@@ -50,7 +50,7 @@ class RecordingApp:
 
 
 class FakeMCP:
-    """Stands in for a FastMCP server, yielding a sentinel inner ASGI app."""
+    """Stands in for a MCPServer server, yielding a sentinel inner ASGI app."""
 
     def __init__(self) -> None:
         """Create the sentinel inner app returned by the builder."""

@@ -104,7 +104,11 @@ from iso20022_readiness_suite_mcp import server
 
 async def main() -> None:
     result = await server.server.call_tool("list_profiles", {})
-    content = result[0] if isinstance(result, tuple) else result
+    # mcp 2.x returns a CallToolResult (read .content); 1.x
+    # returns the content list, or a (content, meta) tuple.
+    content = getattr(result, "content", None)
+    if content is None:
+        content = result[0] if isinstance(result, tuple) else result
     print(content[0].text)  # -> [{"profile_id": "CBPR+", ...}, ...]
 
 

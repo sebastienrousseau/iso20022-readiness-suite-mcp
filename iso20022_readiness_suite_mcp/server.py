@@ -23,7 +23,7 @@ orchestrator; each returns typed, JSON-serializable data and an
 ``{"error": ...}``-shaped payload on any failure, never a traceback.
 
 Launch as a console script (``iso20022-readiness-suite-mcp``) or configure it
-in an MCP client. The transport is stdio (FastMCP's default).
+in an MCP client. The transport is stdio (the SDK's default).
 """
 
 from __future__ import annotations
@@ -33,11 +33,11 @@ import json
 import os
 from typing import Annotated, Any
 
-from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from iso20022_readiness_suite_mcp import __version__, tracing
+from iso20022_readiness_suite_mcp._mcp_compat import build_server
 from iso20022_readiness_suite_mcp.clients.sub_server import (
     StdioSubServerInvoker,
     SubServerInvoker,
@@ -52,10 +52,7 @@ from iso20022_readiness_suite_mcp.models import (
 from iso20022_readiness_suite_mcp.orchestrators import readiness, simulator
 from iso20022_readiness_suite_mcp.policies.engine import ProfileEngine
 
-server = FastMCP("iso20022-readiness-suite")
-# FastMCP does not accept a version kwarg; set it so serverInfo.version is
-# coherent with the package version.
-server._mcp_server.version = __version__
+server = build_server("iso20022-readiness-suite", __version__)
 
 # Module singletons. Tests substitute ``_invoker`` with a fake so the
 # orchestration logic is exercised without spawning real sub-processes.
