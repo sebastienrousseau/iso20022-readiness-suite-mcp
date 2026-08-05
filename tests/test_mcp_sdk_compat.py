@@ -99,3 +99,16 @@ def test_result_content_handles_every_shape() -> None:
     assert compat.result_content(Wrapped()) == ["block"]
     assert compat.result_content((["block"], {"meta": 1})) == ["block"]
     assert compat.result_content(["block"]) == ["block"]
+
+
+def test_result_structured_handles_both_shapes() -> None:
+    """2.x exposes structured_content; 1.x used the tuple's second slot."""
+
+    class Wrapped:
+        structured_content = {"result": [1, 2]}
+
+    assert compat.result_structured(Wrapped()) == {"result": [1, 2]}
+    assert compat.result_structured((["block"], {"result": []})) == {
+        "result": []
+    }
+    assert compat.result_structured(["block"]) is None
