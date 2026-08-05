@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The FastMCP prompt and resource surface (the MCP "Trinity")."""
+"""The MCPServer prompt and resource surface (the MCP "Trinity")."""
 
 from __future__ import annotations
 

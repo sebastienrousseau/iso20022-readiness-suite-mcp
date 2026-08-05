@@ -20,4 +20,4 @@ compose the foundational MCP servers (iso20022-mcp, camt053-mcp, pain001-mcp,
 reconcile-mcp, bankstatementparser-mcp) via the meta-client pattern.
 """
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"

@@ -176,7 +176,11 @@ from iso20022_readiness_suite_mcp import server
 async def main() -> None:
     async def call(name, args):
         result = await server.server.call_tool(name, args)
-        content = result[0] if isinstance(result, tuple) else result
+        # mcp 2.x returns a CallToolResult (read .content); 1.x
+        # returns the content list, or a (content, meta) tuple.
+        content = getattr(result, "content", None)
+        if content is None:
+            content = result[0] if isinstance(result, tuple) else result
         return content[0].text if content else ""
 
     # Which clearing profiles can I target? (fully local)
