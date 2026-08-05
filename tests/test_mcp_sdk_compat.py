@@ -36,6 +36,28 @@ def test_context_is_importable() -> None:
     assert compat.Context is not None
 
 
+def test_context_is_the_injectable_one() -> None:
+    """The exported ``Context`` must be the class the SDK injects.
+
+    mcp 2.x ships *two* different classes called ``Context``:
+    ``mcp.server.context.Context`` and
+    ``mcp.server.mcpserver.context.Context``. Only the latter is matched
+    when the SDK decides which tool argument receives the context.
+    Exporting the wrong one makes the parameter look like ordinary tool
+    input and blows up schema generation with "Cannot generate a
+    JsonSchema for core_schema.IsInstanceSchema".
+    """
+    if compat.MCP_MAJOR < 2:
+        return
+
+    from mcp.server.mcpserver.tools.base import find_context_parameter
+
+    def probe(ctx: compat.Context, value: int) -> int:  # pragma: no cover
+        return value
+
+    assert find_context_parameter(probe) == "ctx"
+
+
 def test_server_reports_package_version() -> None:
     """serverInfo.version must equal the package version on both majors."""
     assert compat.server_version(server) == __version__
@@ -52,3 +74,28 @@ def test_tools_are_registered() -> None:
     tools = asyncio.run(server.list_tools())
     assert tools, "no tools registered on the MCP server"
     assert all(t.name for t in tools)
+
+
+def test_result_is_error_handles_both_spellings() -> None:
+    """The helper must not depend on which spelling the SDK exposes."""
+
+    class OnlySnake:
+        is_error = True
+
+    class OnlyCamel:
+        isError = True  # noqa: N815 - mirrors the mcp 1.x field name
+
+    assert compat.result_is_error(OnlySnake()) is True
+    assert compat.result_is_error(OnlyCamel()) is True
+    assert compat.result_is_error(object()) is False
+
+
+def test_result_content_handles_every_shape() -> None:
+    """2.x wraps content in an object; 1.x returned it bare or in a tuple."""
+
+    class Wrapped:
+        content = ["block"]
+
+    assert compat.result_content(Wrapped()) == ["block"]
+    assert compat.result_content((["block"], {"meta": 1})) == ["block"]
+    assert compat.result_content(["block"]) == ["block"]

@@ -1,9 +1,15 @@
 """Compatibility layer over the ``mcp`` SDK's two supported majors.
 
-``mcp`` 2.0 removed the ``mcp.server.fastmcp`` module: ``FastMCP`` became
-``mcp.server.MCPServer`` and ``Context`` moved to ``mcp.server.context``.
-Server construction, the ``.tool()`` / ``.resource()`` decorators and
-``.run()`` are otherwise identical, so a single indirection covers both.
+``mcp`` 2.0 removed the ``mcp.server.fastmcp`` module. ``FastMCP`` became
+``mcp.server.MCPServer``, ``Context`` moved to
+``mcp.server.mcpserver.context``, and the prompt message classes moved to
+``mcp.server.mcpserver.prompts.base``. Server construction, the
+``.tool()`` / ``.resource()`` decorators and ``.run()`` are otherwise
+identical, so a single indirection covers both.
+
+Several result attributes were also renamed camelCase -> snake_case
+(``isError`` -> ``is_error``); :func:`result_content` and
+:func:`result_is_error` paper over those.
 
 Import the server class, :data:`Context` and :func:`build_server` from
 here rather than from ``mcp`` directly, so there is exactly one place to
@@ -27,9 +33,13 @@ from typing import Any
 
 __all__ = [
     "MCP_MAJOR",
+    "AssistantMessage",
     "Context",
     "MCPServer",
+    "UserMessage",
     "build_server",
+    "result_content",
+    "result_is_error",
     "server_version",
 ]
 
@@ -40,7 +50,15 @@ def _resolve() -> tuple[Any, Any, int]:
 
     server_cls = getattr(_mcp_server, "MCPServer", None)
     if server_cls is not None:  # mcp >= 2
-        from mcp.server.context import Context
+        # Must be ``mcp.server.mcpserver.context``, NOT
+        # ``mcp.server.context``. Both exist in 2.x and they are
+        # *different classes*; only this one is what
+        # ``find_context_parameter`` matches when deciding which tool
+        # argument to inject. Annotating a tool with the other one makes
+        # the parameter look like ordinary input, and building the tool
+        # schema then dies with "Cannot generate a JsonSchema for
+        # core_schema.IsInstanceSchema".
+        from mcp.server.mcpserver.context import Context
 
         return server_cls, Context, 2
 
@@ -56,6 +74,29 @@ def _resolve() -> tuple[Any, Any, int]:
 
 
 MCPServer, Context, MCP_MAJOR = _resolve()
+
+
+def _resolve_prompts() -> tuple[Any, Any]:
+    """Return ``(UserMessage, AssistantMessage)`` for the installed SDK.
+
+    The prompt message classes moved from
+    ``mcp.server.fastmcp.prompts.base`` to
+    ``mcp.server.mcpserver.prompts.base`` in 2.0. Imported dynamically
+    for the same reason as the server class: neither path type-checks
+    while the other major is installed.
+    """
+    import importlib
+
+    path = (
+        "mcp.server.mcpserver.prompts.base"
+        if MCP_MAJOR >= 2
+        else "mcp.server.fastmcp.prompts.base"
+    )
+    base = importlib.import_module(path)
+    return base.UserMessage, base.AssistantMessage
+
+
+UserMessage, AssistantMessage = _resolve_prompts()
 
 
 def build_server(name: str, version: str) -> Any:
@@ -74,3 +115,28 @@ def server_version(server: Any) -> str:
     if version:
         return str(version)
     return str(server._mcp_server.version)  # pragma: no cover
+
+
+def result_content(result: Any) -> Any:
+    """The content list from a ``call_tool`` result, across both majors.
+
+    2.x returns a ``CallToolResult`` (read ``.content``); 1.x returned
+    the content list itself, or a ``(content, meta)`` tuple. Subscripting
+    a 2.x result raises ``TypeError``.
+    """
+    content = getattr(result, "content", None)
+    if content is not None:
+        return content
+    return result[0] if isinstance(result, tuple) else result
+
+
+def result_is_error(result: Any) -> bool:
+    """Whether a ``call_tool`` result is an error, across both majors.
+
+    The attribute was renamed ``isError`` -> ``is_error`` in 2.0. The
+    pydantic alias only covers construction kwargs, not attribute reads,
+    so both spellings have to be probed.
+    """
+    if hasattr(result, "is_error"):  # mcp >= 2
+        return bool(result.is_error)
+    return bool(getattr(result, "isError", False))
