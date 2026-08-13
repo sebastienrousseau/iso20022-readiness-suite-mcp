@@ -7,7 +7,7 @@
 # check stays deterministic across uv recompiles.
 mcp>=1.28.1
 pydantic>=2.9,<3
-ruff==0.15.22
+ruff==0.16.1
 black==26.5.1
 mypy>=1.11,<3.0
 # HTTP transport + OAuth 2.1 resource-server auth, and (evidence-pack)
