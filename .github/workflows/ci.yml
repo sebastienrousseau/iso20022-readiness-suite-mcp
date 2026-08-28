@@ -65,6 +65,14 @@ jobs:
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short
 
+      # The benchmark asserts no timing threshold -- wall-clock is not
+      # comparable between runners, and a flaky perf gate teaches
+      # people to ignore red. This proves it still runs against the
+      # current API rather than rotting into a file that reads as
+      # verified and is not.
+      - name: Run the benchmark
+        run: python benches/bench_simulate_response.py --quick
+
       - name: Enforce 100% docstring coverage
         run: interrogate -c pyproject.toml iso20022_readiness_suite_mcp
 
@@ -86,10 +94,10 @@ jobs:
         run: pip install --require-hashes -r requirements/lint.txt
 
       - name: Ruff check
-        run: ruff check iso20022_readiness_suite_mcp/
+        run: ruff check iso20022_readiness_suite_mcp/ tests/ benches/
 
       - name: Black check
-        run: black --check iso20022_readiness_suite_mcp/ tests/
+        run: black --check iso20022_readiness_suite_mcp/ tests/ benches/
 
       - name: Mypy
         run: mypy iso20022_readiness_suite_mcp/
