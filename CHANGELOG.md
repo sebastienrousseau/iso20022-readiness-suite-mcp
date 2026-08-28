@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4] - 2026-08-28
+
+Brings this repository onto the **suite conformance gate**.
+
+### Added
+
+- **`benches/bench_simulate_response.py`** — the cost of rehearsing against
+  a bank that has not switched on yet. Rehearsal means volume: a harness
+  replays a whole batch, and a real batch is hundreds of `<PmtInf>` blocks
+  rather than the single one in the fixtures.
+
+  **Simulation is linear** in payload size — `us/block` moves **0.98x**
+  between 10 and 5,000 blocks. Total cost tracks the document, because the
+  whole inbound payload is parsed. That is defensible, though a pacs.002
+  needs only the group header and the references, so there is room to read
+  less. What would be a defect is that number climbing.
+
+  **The three behaviours are close.** `ACCP` 0.544 ms, `RJCT` 0.555 ms,
+  `PDNG` 0.655 ms on the same payload — no path does markedly more work
+  than the others.
+
+  **Refusal is the cheap path.** `RJCT` without a reason code is refused in
+  **0.009 ms** against 0.544 ms for the cheapest real response, 60x
+  cheaper. That is the right way round: validation that builds a response
+  and then discards it wastes the work on exactly the input a fuzzing
+  harness sends most of.
+
+  Nothing asserts a timing threshold. CI runs `--quick`, so a benchmark
+  that stops compiling fails the build rather than rotting.
+
+- **`tests/test_suite_conformance.py`** — invariants shared by every
+  repository in the suite, vendored from one canonical copy and
+  checksummed by its own test.
+
+### Changed
+
+- CI lints, formats and runs `benches/` alongside everything else.
+- `tomli` (on 3.10) and `packaging` are named in the dev dependency group;
+  the conformance gate parses `pyproject.toml` and needs both.
+- `tests/test_suite_conformance.py` is excluded from black: it is
+  generated, and the suite uses three different line lengths.
+
 ## [0.0.3] - 2026-08-21
 
 ### Added
