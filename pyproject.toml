@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iso20022-readiness-suite-mcp"
-version = "0.0.4"
+version = "0.0.5"
 description = "Orchestration MCP server: ISO 20022 readiness scoring, remediation, and bank-response simulation over the foundational MCP servers."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0 OR MIT"
