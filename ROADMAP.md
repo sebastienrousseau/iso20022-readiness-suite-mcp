@@ -11,15 +11,25 @@ foundational suite servers, which it composes into readiness scoring,
 automated remediation, clearing-profile linting, and bank-response simulation
 ahead of the November 2026 ISO 20022 milestones.
 
-## Where we are (v0.0.2, shipped 2026-07-18)
+## Where we are (v0.0.5, shipped 2026-08-29)
 
-- **Optional streamable-HTTP transport** (delivered in v0.0.2):
-  `iso20022-readiness-suite-mcp --transport=http --bind=…` alongside the
-  default stdio, with **OAuth 2.1 resource-server auth (RFC 9728)** when the
-  `ISO20022_READINESS_OAUTH_*` variables are set (JWKS validation, `iss` /
-  `aud` / `exp` / `nbf`, required scopes, protected-resource metadata), a
-  static dev-mode bearer token fallback, and an optional `X-MCP-Tenant` header
-  forwarded into a per-request tenant context.
+- **Transports**: stdio (default); streamable HTTP and SSE from the
+  suite's shared command line (`--transport streamable-http|sse`,
+  `--host`, `--port`, unreleased); authenticated streamable HTTP
+  (`--transport=http --bind=…`, since v0.0.2) with **OAuth 2.1
+  resource-server auth (RFC 9728)** when the `ISO20022_READINESS_OAUTH_*`
+  variables are set (JWKS validation, `iss` / `aud` / `exp` / `nbf`,
+  required scopes, protected-resource metadata), a static dev-mode bearer
+  token fallback, and an optional `X-MCP-Tenant` header forwarded into a
+  per-request tenant context.
+- **Pooled sub-servers** (unreleased): the first call to a foundational
+  server opens a stdio session that later calls reuse; a failed session is
+  relaunched and an idle one closes after five minutes.
+- **MCP prompts and resources** (v0.0.3) alongside the four tools, and
+  **opt-in OpenTelemetry tracing** behind the `[otel]` extra.
+- **Gates**: README and docs snippets executed in CI (v0.0.3), the
+  suite-conformance test and the `simulate_bank_response` benchmark
+  (v0.0.4), a scheduled release-consistency check against PyPI (v0.0.5).
 
 ## Shipped in v0.0.1 (2026-07-18)
 
@@ -39,7 +49,7 @@ ahead of the November 2026 ISO 20022 milestones.
   structured-address-fix-mcp), spawned over stdio via `uvx`.
 - **Clearing-profile engine**: bundled JSON baseline profiles (open source),
   with a `register()` seam for runtime-loaded premium rule packs.
-- **Stdio transport** (FastMCP default): one process per operator, launched
+- **Stdio transport** (the default): one process per operator, launched
   by the MCP client, no network surface, no authentication needed.
 - **Supply chain**: 100% line + branch coverage, OpenSSF Scorecard, SLSA
   Build L3 + PEP 740 sigstore attestations on every release, CycloneDX 1.6 +

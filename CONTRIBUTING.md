@@ -82,7 +82,7 @@ pip install poetry
    ```
 6. **Sign and commit**:
    ```bash
-   git commit -S -m "feat: add my feature"
+   git commit -S -s -m "feat: add my feature"
    ```
 7. **Push** and open a pull request
 
@@ -97,6 +97,13 @@ git config --global gpg.format ssh
 git config --global user.signingkey ~/.ssh/id_ed25519
 git config --global commit.gpgsign true
 ```
+
+### Developer Certificate of Origin
+
+Every commit must also carry a `Signed-off-by:` trailer, which asserts
+you have the right to submit the work under this project's licence
+(the text is in [`DCO.txt`](DCO.txt)). Add one with `git commit -s`;
+the `DCO` workflow fails a pull request that is missing it.
 
 ### Commit Message Format
 
@@ -134,7 +141,7 @@ poetry run pytest tests/test_server.py -v
 
 - [ ] All tests pass (`poetry run pytest`)
 - [ ] Linters pass (`ruff check`, `mypy`, `black --check`)
-- [ ] Commits are signed
+- [ ] Commits are signed and carry a `Signed-off-by:` trailer (`git commit -s`)
 - [ ] PR title follows conventional commit format
 - [ ] New features include tests and documentation
 

@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+cff-version: 1.2.0
+message: "If you use iso20022-readiness-suite-mcp in research or production write-ups, please cite it as below."
+type: software
+title: "iso20022-readiness-suite-mcp: Model Context Protocol gateway for ISO 20022 readiness"
+abstract: >-
+  An orchestration Model Context Protocol server for the ISO 20022 MCP Suite:
+  four tools that score a payment message against a clearing profile
+  (CBPR+, SEPA_Instant, FedNow, Generic), propose automated remediation
+  such as structured postal addresses, and simulate a bank's pacs.002
+  response, composing the suite's foundational servers over stdio.
+authors:
+  - family-names: Rousseau
+    given-names: Sebastien
+    email: sebastian.rousseau@gmail.com
+version: "0.0.5"
+date-released: "2026-08-29"
+license: "Apache-2.0 OR MIT"
+repository-code: "https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp"
+url: "https://sebastienrousseau.github.io/iso20022-readiness-suite-mcp/"
+keywords:
+  - ISO 20022
+  - CBPR+
+  - pain.001
+  - pacs.002
+  - readiness
+  - Model Context Protocol
+  - MCP
+  - AI agents

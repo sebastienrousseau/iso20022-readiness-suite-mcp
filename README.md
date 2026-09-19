@@ -412,6 +412,8 @@ Vulnerability Reporting, not public issues.
 
 - [`README.md`](README.md) — this file
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — module map and the design decisions behind the gateway
+- [`RELEASING.md`](RELEASING.md) — what merits a release and how one is cut
 - [`SECURITY.md`](SECURITY.md) — disclosure + supported versions
 - [`SUPPORT.md`](SUPPORT.md) — how to get help
 - [`ROADMAP.md`](ROADMAP.md) — what's next (sister servers, premium rule-pack entitlement)
