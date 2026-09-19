@@ -444,3 +444,76 @@ async def test_call_racing_a_closing_owner_is_failed(
     monkeypatch.setattr(session._queue, "put", put_then_close)
     with pytest.raises(RuntimeError, match="session closed"):
         await session.call("parse", {})
+
+
+@pytest.mark.asyncio
+async def test_cancelled_before_ready_fails_the_waiting_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cancelling the owner while the transport is still opening fails the
+    call that was waiting for it with a plain error, not a cancellation."""
+    from iso20022_readiness_suite_mcp.clients.sub_server import (
+        _SubServerSession,
+    )
+
+    class _NeverOpens:
+        async def __aenter__(self) -> tuple[str, str]:
+            await asyncio.Event().wait()
+            return ("read", "write")  # pragma: no cover - never reached
+
+        async def __aexit__(self, *exc: Any) -> bool:
+            return False
+
+    monkeypatch.setattr(
+        mcp.client.stdio, "stdio_client", lambda params: _NeverOpens()
+    )
+    session = _SubServerSession(["fake"], idle_seconds=60)
+    waiting = asyncio.create_task(session.call("parse", {}))
+    await asyncio.sleep(0.01)
+    session._task.cancel()
+    with pytest.raises(RuntimeError, match="session closed"):
+        await waiting
+    assert session.closed
+
+
+@pytest.mark.asyncio
+async def test_teardown_error_after_ready_fails_what_was_queued(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An error while the transport closes is relayed to a request that
+    landed on the queue after the stop signal."""
+    from iso20022_readiness_suite_mcp.clients.sub_server import (
+        _Request,
+        _SubServerSession,
+    )
+
+    class _Session:
+        def __init__(self, read: str, write: str) -> None:
+            pass
+
+        async def __aenter__(self) -> _Session:
+            return self
+
+        async def __aexit__(self, *exc: Any) -> bool:
+            raise RuntimeError("teardown failed")
+
+        async def initialize(self) -> None:
+            return None
+
+        async def call_tool(
+            self, tool: str, args: dict[str, Any]
+        ) -> Any:  # pragma: no cover - never called
+            raise AssertionError
+
+    monkeypatch.setattr(
+        mcp.client.stdio, "stdio_client", lambda params: _FakeStdioCM()
+    )
+    monkeypatch.setattr(mcp, "ClientSession", _Session)
+    session = _SubServerSession(["fake"], idle_seconds=60)
+    await session._ready
+    late = _Request("parse", {})
+    session._queue.put_nowait(None)
+    session._queue.put_nowait(late)
+    await session._task
+    with pytest.raises(RuntimeError, match="teardown failed"):
+        await late.done
