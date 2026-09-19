@@ -151,3 +151,49 @@ def test_main_http_explicit_bind(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     server_mod.main(["--transport=http", "--bind=0.0.0.0:9999"])
     assert calls == [(server_mod.server, "0.0.0.0:9999")]
+
+
+@pytest.mark.parametrize("name", ["streamable-http", "sse"])
+def test_main_suite_transports_dispatch_to_transports_run(
+    monkeypatch: pytest.MonkeyPatch, name: str
+) -> None:
+    """``--transport=streamable-http|sse`` hands off to ``_transports.run``."""
+    calls: dict[str, object] = {}
+    monkeypatch.setattr(
+        server_mod._transports,
+        "run",
+        lambda mcp_server, t, host, port: calls.update(
+            server=mcp_server, transport=t, host=host, port=port
+        ),
+    )
+    server_mod.main([f"--transport={name}", "--host=0.0.0.0", "--port=9"])
+    assert calls == {
+        "server": server_mod.server,
+        "transport": name,
+        "host": "0.0.0.0",
+        "port": 9,
+    }
+
+
+def test_main_suite_transports_default_host_and_port(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without --host/--port the suite defaults (loopback, 8000) apply."""
+    calls: dict[str, object] = {}
+    monkeypatch.setattr(
+        server_mod._transports,
+        "run",
+        lambda mcp_server, t, host, port: calls.update(host=host, port=port),
+    )
+    server_mod.main(["--transport=sse"])
+    assert calls == {
+        "host": server_mod._transports.DEFAULT_HOST,
+        "port": server_mod._transports.DEFAULT_PORT,
+    }
+
+
+def test_main_rejects_unknown_transport() -> None:
+    """A transport the parser does not offer exits with a usage error."""
+    with pytest.raises(SystemExit) as info:
+        server_mod.main(["--transport=carrier-pigeon"])
+    assert info.value.code == 2
