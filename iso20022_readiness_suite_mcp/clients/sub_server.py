@@ -133,8 +133,14 @@ class _SubServerSession:
         can drop the session and report the failure as data.
         """
         await self._ready
+        if self.closed:
+            raise RuntimeError("sub-server session closed")
         request = _Request(tool, arguments)
         await self._queue.put(request)
+        if self.closed:
+            # The owner left between the check and the put; nobody will
+            # drain the queue now, so do it here (this request included).
+            self._fail_pending(RuntimeError("sub-server session closed"))
         return await request.done
 
     @property
@@ -167,6 +173,10 @@ class _SubServerSession:
             self._fail_pending(exc)
             if isinstance(exc, asyncio.CancelledError):
                 raise
+        else:
+            # Left on purpose (closed or idle): anything queued meanwhile
+            # must not wait forever for an owner that is gone.
+            self._fail_pending(RuntimeError("sub-server session closed"))
 
     async def _pump(self, session: Any) -> None:
         """Serve queued requests until closed or idle for too long."""

@@ -337,3 +337,110 @@ async def test_tool_exception_fails_that_call_only(
     second = await inv.call("iso20022-mcp", "parse", {})
     assert second.ok is True
     await inv.aclose()
+
+
+@pytest.mark.asyncio
+async def test_queued_call_fails_when_the_owner_leaves(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A call queued behind one that broke the session is failed, not left
+    waiting forever, and the invoker relaunches for the call after it."""
+    gate = asyncio.Event()
+    calls = {"n": 0}
+
+    class _Session:
+        def __init__(self, read: str, write: str) -> None:
+            pass
+
+        async def __aenter__(self) -> _Session:
+            return self
+
+        async def __aexit__(self, *exc: Any) -> bool:
+            return False
+
+        async def initialize(self) -> None:
+            return None
+
+        async def call_tool(self, tool: str, args: dict[str, Any]) -> Any:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                await gate.wait()
+                raise RuntimeError("pipe broke")
+            return _FakeResult([_TextItem("ok")], is_error=False)
+
+    monkeypatch.setattr(
+        mcp.client.stdio, "stdio_client", lambda params: _FakeStdioCM()
+    )
+    monkeypatch.setattr(mcp, "ClientSession", _Session)
+    inv = StdioSubServerInvoker()
+    first = asyncio.create_task(inv.call("iso20022-mcp", "parse", {}))
+    await asyncio.sleep(0)  # let the first call reach call_tool
+    second = asyncio.create_task(inv.call("iso20022-mcp", "parse", {}))
+    await asyncio.sleep(0)  # and the second sit in the queue
+    gate.set()
+    outcomes = await asyncio.gather(first, second)
+    # Which of the two reached the sub-server first depends on task
+    # scheduling; what matters is that one carries the tool's failure and
+    # the other is told the session went away, and neither hangs.
+    assert all(o.ok is False for o in outcomes)
+    reasons = sorted(o.error.explanation for o in outcomes)  # type: ignore[union-attr]
+    assert any("pipe broke" in r for r in reasons)
+    assert any("session closed" in r for r in reasons)
+    assert (await inv.call("iso20022-mcp", "parse", {})).ok is True
+    await inv.aclose()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_owner_fails_pending_and_closed_session_refuses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cancelling the owning task fails what was queued; a later call on
+    that session is refused rather than queued."""
+    from iso20022_readiness_suite_mcp.clients.sub_server import (
+        _Request,
+        _SubServerSession,
+    )
+
+    result = _FakeResult([_TextItem("x")], is_error=False)
+    _patch_transport(monkeypatch, result)
+    session = _SubServerSession(["fake"], idle_seconds=60)
+    await session._ready
+    pending = _Request("parse", {})
+    session._queue.put_nowait(pending)
+    session._task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await session._task
+    with pytest.raises(RuntimeError, match="session closed"):
+        await pending.done
+    with pytest.raises(RuntimeError, match="session closed"):
+        await session.call("parse", {})
+
+
+@pytest.mark.asyncio
+async def test_call_racing_a_closing_owner_is_failed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A request put on the queue just as the owner leaves is drained by
+    the caller itself instead of waiting on nobody."""
+    from iso20022_readiness_suite_mcp.clients.sub_server import (
+        _SubServerSession,
+    )
+
+    result = _FakeResult([_TextItem("x")], is_error=False)
+    _patch_transport(monkeypatch, result)
+    session = _SubServerSession(["fake"], idle_seconds=60)
+    await session._ready
+    # Make the owner finish right after the caller's first "closed" check.
+    real_put = session._queue.put
+
+    async def put_then_close(item: Any) -> None:
+        # The owner sees the stop signal first, leaves, and only then does
+        # the caller's request land on the queue.
+        await real_put(None)
+        await real_put(item)
+        await real_put(None)  # a second stop signal is skipped, not failed
+        await asyncio.gather(session._task, return_exceptions=True)
+
+    monkeypatch.setattr(session._queue, "put", put_then_close)
+    with pytest.raises(RuntimeError, match="session closed"):
+        await session.call("parse", {})
