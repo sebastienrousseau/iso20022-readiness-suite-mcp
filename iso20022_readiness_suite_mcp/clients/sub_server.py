@@ -181,12 +181,7 @@ class _SubServerSession:
     async def _pump(self, session: Any) -> None:
         """Serve queued requests until closed or idle for too long."""
         while True:
-            try:
-                request = await asyncio.wait_for(
-                    self._queue.get(), self._idle_seconds
-                )
-            except asyncio.TimeoutError:
-                return
+            request = await self._next()
             if request is None:
                 return
             try:
@@ -197,6 +192,30 @@ class _SubServerSession:
                 request.done.set_exception(exc)
                 return
             request.done.set_result(result)
+
+    async def _next(self) -> _Request | None:
+        """Wait for the next request; ``None`` means stop (told to, or idle).
+
+        Not ``asyncio.wait_for``: on Python 3.10 and 3.11 a cancellation
+        that lands while it is waiting can surface as ``TimeoutError``,
+        which would turn "stop now" into "idle, leave quietly" and hide
+        the cancellation from the owner.
+        """
+        getter = asyncio.ensure_future(self._queue.get())
+        try:
+            done, _ = await asyncio.wait({getter}, timeout=self._idle_seconds)
+        except BaseException:
+            if getter.done() and not getter.cancelled():
+                # It dequeued something in the same tick; hand it back so
+                # the owner's drain fails it rather than losing it.
+                self._queue.put_nowait(getter.result())
+            else:
+                getter.cancel()
+            raise
+        if not done:
+            getter.cancel()
+            return None
+        return getter.result()
 
     def _fail_pending(self, exc: BaseException) -> None:
         """Fail every request still queued when the session went away."""
