@@ -472,7 +472,7 @@ async def test_cancelled_before_ready_fails_the_waiting_call(
     await asyncio.sleep(0.01)
     session._task.cancel()
     with pytest.raises(RuntimeError, match="session closed"):
-        await waiting
+        _ = await waiting
     assert session.closed
 
 
