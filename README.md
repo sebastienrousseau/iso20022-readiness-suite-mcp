@@ -7,6 +7,7 @@
 [![Quality][quality-badge]][quality-url]
 [![OpenSSF Scorecard][scorecard-badge]][scorecard-url]
 [![Documentation][docs-badge]][docs-url]
+[![Glama MCP server score][glama-badge]][glama-url]
 
 **A high-level orchestration [Model Context Protocol][mcp] server — the
 White-Label ISO 20022 Readiness & Testing Gateway.** It is an MCP *server* to
@@ -22,7 +23,7 @@ agent can drive to answer "is this payment ready, and if not, fix it".
 > tomorrow. `iso20022-readiness-suite-mcp` puts a single readiness gateway in
 > front of your agent: `run_readiness_check` scores a payload against a
 > clearing profile, `remediate_payload` proposes the compliant form, and
-> `simulate_bank_response` mocks how a bank would answer. **v0.0.2**, stdio
+> `simulate_bank_response` mocks how a bank would answer. **v0.0.5**, stdio
 > (default) or streamable HTTP, 4 tools, Python 3.10+.
 
 ## Contents
@@ -424,3 +425,5 @@ Built on the foundational servers of the ISO 20022 MCP Suite and the
 [scorecard-url]: https://scorecard.dev/viewer/?uri=github.com/sebastienrousseau/iso20022-readiness-suite-mcp
 [tests-badge]: https://img.shields.io/github/actions/workflow/status/sebastienrousseau/iso20022-readiness-suite-mcp/ci.yml?branch=main&label=Tests&style=for-the-badge
 [tests-url]: https://github.com/sebastienrousseau/iso20022-readiness-suite-mcp/actions/workflows/ci.yml
+[glama-badge]: https://glama.ai/mcp/servers/sebastienrousseau/iso20022-readiness-suite-mcp/badges/score.svg
+[glama-url]: https://glama.ai/mcp/servers/sebastienrousseau/iso20022-readiness-suite-mcp
