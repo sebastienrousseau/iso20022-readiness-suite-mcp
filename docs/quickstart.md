@@ -35,7 +35,7 @@ without any of this.
 ## 2. Launch the server
 
 The package installs an `iso20022-readiness-suite-mcp` console entry
-point that starts the server over stdio (FastMCP's default transport):
+point that starts the server over stdio (the default transport; `--transport streamable-http` or `sse` for HTTP):
 
 ```sh
 iso20022-readiness-suite-mcp
