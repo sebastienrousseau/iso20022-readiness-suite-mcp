@@ -167,12 +167,18 @@ class _SubServerSession:
                     await session.initialize()
                     self._ready.set_result(None)
                     await self._pump(session)
-        except BaseException as exc:  # noqa: BLE001 - relayed to waiters
+        except asyncio.CancelledError:
+            # Told to stop mid-flight: waiters get a plain error, not the
+            # cancellation, which belongs to this task alone.
+            gone = RuntimeError("sub-server session closed")
+            if not self._ready.done():
+                self._ready.set_exception(gone)
+            self._fail_pending(gone)
+            raise
+        except Exception as exc:  # noqa: BLE001 - relayed to waiters
             if not self._ready.done():
                 self._ready.set_exception(exc)
             self._fail_pending(exc)
-            if isinstance(exc, asyncio.CancelledError):
-                raise
         else:
             # Left on purpose (closed or idle): anything queued meanwhile
             # must not wait forever for an owner that is gone.
@@ -204,7 +210,7 @@ class _SubServerSession:
         getter = asyncio.ensure_future(self._queue.get())
         try:
             done, _ = await asyncio.wait({getter}, timeout=self._idle_seconds)
-        except BaseException:
+        except (asyncio.CancelledError, Exception):
             if getter.done() and not getter.cancelled():
                 # It dequeued something in the same tick; hand it back so
                 # the owner's drain fails it rather than losing it.
@@ -217,16 +223,12 @@ class _SubServerSession:
             return None
         return getter.result()
 
-    def _fail_pending(self, exc: BaseException) -> None:
+    def _fail_pending(self, exc: Exception) -> None:
         """Fail every request still queued when the session went away."""
         while not self._queue.empty():
             request = self._queue.get_nowait()
             if request is not None and not request.done.done():
-                request.done.set_exception(
-                    exc
-                    if isinstance(exc, Exception)
-                    else RuntimeError("sub-server session closed")
-                )
+                request.done.set_exception(exc)
 
 
 class StdioSubServerInvoker:
