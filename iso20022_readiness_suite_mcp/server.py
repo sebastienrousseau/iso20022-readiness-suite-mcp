@@ -188,7 +188,17 @@ def simulate_bank_response(
 
 
 @server.prompt(title="ISO 20022 readiness review")
-def readiness_review(target_profile: str = "CBPR+") -> str:
+def readiness_review(
+    target_profile: Annotated[
+        str,
+        Field(
+            description=(
+                "The clearing profile to review against, e.g. CBPR+ or SEPA; "
+                "see list_profiles for the accepted values."
+            )
+        ),
+    ] = "CBPR+",
+) -> str:
     """Guide an agent through the end-to-end readiness workflow.
 
     Args:

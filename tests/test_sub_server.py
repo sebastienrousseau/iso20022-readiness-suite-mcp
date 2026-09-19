@@ -22,6 +22,7 @@ so no real sub-process is ever spawned.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import mcp
@@ -177,12 +178,21 @@ def _make_fake_session(result: _FakeResult) -> type:
 
 def _patch_transport(
     monkeypatch: pytest.MonkeyPatch, result: _FakeResult
-) -> None:
-    """Patch ``stdio_client`` and ``ClientSession`` with in-memory fakes."""
-    monkeypatch.setattr(
-        mcp.client.stdio, "stdio_client", lambda params: _FakeStdioCM()
-    )
+) -> list[Any]:
+    """Patch ``stdio_client`` and ``ClientSession`` with in-memory fakes.
+
+    Returns the list of launch parameters, one entry per server start, so
+    a test can assert how many processes the invoker would have spawned.
+    """
+    launches: list[Any] = []
+
+    def fake_stdio_client(params: Any) -> _FakeStdioCM:
+        launches.append(params)
+        return _FakeStdioCM()
+
+    monkeypatch.setattr(mcp.client.stdio, "stdio_client", fake_stdio_client)
     monkeypatch.setattr(mcp, "ClientSession", _make_fake_session(result))
+    return launches
 
 
 @pytest.mark.asyncio
@@ -209,3 +219,121 @@ async def test_invoke_tool_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert out.error.code == "RS_SUBSERVER_TOOL_ERROR"
     assert out.error.locator == "pain001-mcp:validate_xml_against_schema"
     assert out.error.context == {"result": "boom detail"}
+
+
+@pytest.mark.asyncio
+async def test_session_is_reused_across_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repeat calls to one server ride the session the first call opened.
+
+    Starting a sub-server costs seconds; the pool exists so an agent that
+    calls ``remediate_payload`` five times pays that once, not five times.
+    """
+    result = _FakeResult([_TextItem('{"ok": 1}')], is_error=False)
+    launches = _patch_transport(monkeypatch, result)
+    inv = StdioSubServerInvoker()
+    for _ in range(3):
+        out = await inv.call("iso20022-mcp", "parse", {})
+        assert out.ok is True
+    out = await inv.call("pain001-mcp", "validate", {})
+    assert out.ok is True
+    assert len(launches) == 2, "one launch per distinct server"
+    await inv.aclose()
+    assert not inv._sessions
+
+
+@pytest.mark.asyncio
+async def test_failed_session_is_dropped_and_relaunched(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A transport failure is reported as data and the session forgotten."""
+    launches: list[Any] = []
+    attempts = {"n": 0}
+
+    class _BrokenOnce:
+        async def __aenter__(self) -> tuple[str, str]:
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise OSError("spawn failed")
+            return ("read", "write")
+
+        async def __aexit__(self, *exc: Any) -> bool:
+            return False
+
+    def fake_stdio_client(params: Any) -> _BrokenOnce:
+        launches.append(params)
+        return _BrokenOnce()
+
+    result = _FakeResult([_TextItem("fine")], is_error=False)
+    monkeypatch.setattr(mcp.client.stdio, "stdio_client", fake_stdio_client)
+    monkeypatch.setattr(mcp, "ClientSession", _make_fake_session(result))
+    inv = StdioSubServerInvoker()
+    first = await inv.call("camt053-mcp", "parse", {})
+    assert first.ok is False
+    assert first.error is not None
+    assert first.error.code == "RS_SUBSERVER_UNAVAILABLE"
+    assert "spawn failed" in first.error.explanation
+    second = await inv.call("camt053-mcp", "parse", {})
+    assert second.ok is True
+    assert second.data == "fine"
+    assert len(launches) == 2
+    await inv.aclose()
+
+
+@pytest.mark.asyncio
+async def test_idle_session_closes_itself(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unused session leaves after ``idle_seconds`` and is replaced."""
+    result = _FakeResult([_TextItem("x")], is_error=False)
+    launches = _patch_transport(monkeypatch, result)
+    inv = StdioSubServerInvoker(idle_seconds=0.01)
+    assert (await inv.call("iso20022-mcp", "parse", {})).ok is True
+    session = inv._sessions["iso20022-mcp"]
+    await asyncio.wait_for(session._task, 1.0)
+    assert session.closed
+    assert (await inv.call("iso20022-mcp", "parse", {})).ok is True
+    assert len(launches) == 2
+    await inv.aclose()
+
+
+@pytest.mark.asyncio
+async def test_tool_exception_fails_that_call_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An exception from ``call_tool`` is data for that call; the next
+    call gets a fresh session."""
+    calls = {"n": 0}
+
+    class _Session:
+        def __init__(self, read: str, write: str) -> None:
+            pass
+
+        async def __aenter__(self) -> _Session:
+            return self
+
+        async def __aexit__(self, *exc: Any) -> bool:
+            return False
+
+        async def initialize(self) -> None:
+            return None
+
+        async def call_tool(self, tool: str, args: dict[str, Any]) -> Any:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise RuntimeError("pipe broke")
+            return _FakeResult([_TextItem("ok")], is_error=False)
+
+    monkeypatch.setattr(
+        mcp.client.stdio, "stdio_client", lambda params: _FakeStdioCM()
+    )
+    monkeypatch.setattr(mcp, "ClientSession", _Session)
+    inv = StdioSubServerInvoker()
+    first = await inv.call("iso20022-mcp", "parse", {})
+    assert first.ok is False
+    assert first.error is not None
+    assert "pipe broke" in first.error.explanation
+    second = await inv.call("iso20022-mcp", "parse", {})
+    assert second.ok is True
+    await inv.aclose()

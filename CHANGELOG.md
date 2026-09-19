@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The Glama and MCP-registry manifests (`glama.json`, `server.json`) named a
+  release several versions old, so the directory listings advertised a stale
+  install; both are stamped to the shipped version and a CI job now fails
+  when they, the package version and the changelog disagree.
+
+### Changed
+
+- Sub-servers stay running between calls. The gateway used to launch the
+  underlying server (through `uvx`) for every tool call and tear it down
+  after, which put about two seconds on each `remediate_payload`; the
+  first call to a server now opens a session that later calls reuse, a
+  failed session is dropped and relaunched, and an idle one closes after
+  five minutes.
+- The `readiness_review` prompt describes its `target_profile` argument.
+
 ## [0.0.5] - 2026-08-29
 
 Adds the scheduled release-consistency check this repository was
