@@ -36,7 +36,12 @@ from typing import Annotated, Any
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from iso20022_readiness_suite_mcp import __version__, tracing
+from iso20022_readiness_suite_mcp import (
+    __version__,
+    _cli,
+    _transports,
+    tracing,
+)
 from iso20022_readiness_suite_mcp._mcp_compat import build_server
 from iso20022_readiness_suite_mcp.clients.sub_server import (
     StdioSubServerInvoker,
@@ -295,26 +300,50 @@ def readiness_profile_resource(profile_id: str) -> str:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Run the MCP server over stdio (default) or streamable HTTP.
+    """Run the MCP server over stdio (default) or one of the HTTP transports.
 
     ``--transport=http`` serves the authenticated streamable-HTTP transport
-    (OAuth 2.1 resource server, or a static dev-mode bearer token); see
-    :mod:`iso20022_readiness_suite_mcp.http.transport`.
+    (OAuth 2.1 resource server, or a static dev-mode bearer token) on
+    ``--bind``; see :mod:`iso20022_readiness_suite_mcp.http.transport`.
+    ``--transport streamable-http`` or ``--transport sse`` listens on
+    ``--host``/``--port`` instead, without authentication; see
+    :mod:`iso20022_readiness_suite_mcp._cli` and
+    :mod:`iso20022_readiness_suite_mcp._transports`.
     """
     parser = argparse.ArgumentParser(
         prog="iso20022-readiness-suite-mcp",
-        description="ISO 20022 readiness/orchestration MCP server.",
+        description=(
+            f"iso20022-readiness-suite-mcp {__version__}: an MCP server. "
+            "Speaks stdio by default; --transport=http serves authenticated "
+            "streamable HTTP for shared multi-tenant deployments (OAuth 2.1 "
+            "via the ISO20022_READINESS_OAUTH_* environment variables, or "
+            "the static dev-mode ISO20022_READINESS_TOKEN token); "
+            "--transport=streamable-http and --transport=sse serve the "
+            "suite's unauthenticated HTTP transports on --host/--port."
+        ),
+        # ``_cli.add_arguments`` defines ``--transport`` with the
+        # suite's three choices; the definition below replaces it with
+        # the four this server speaks while keeping ``--host``/``--port``.
+        conflict_handler="resolve",
     )
     parser.add_argument(
         "--version",
         action="version",
         version=f"iso20022-readiness-suite-mcp {__version__}",
     )
+    _cli.add_arguments(parser)
     parser.add_argument(
         "--transport",
-        choices=("stdio", "http"),
+        choices=("stdio", "http", *_transports.TRANSPORTS[1:]),
         default="stdio",
-        help="Transport to serve (default: stdio).",
+        help=(
+            "MCP transport to serve: 'stdio' (default; launched by a "
+            "local MCP client), 'http' (authenticated streamable HTTP, "
+            "see http/transport.py: mandatory bearer-token auth on "
+            "--bind), 'streamable-http' (HTTP at --host:--port/mcp, "
+            "protocol 2026-07-28 and 2025-11-25, no auth) or 'sse' (the "
+            "older HTTP+SSE transport at /sse and /messages/, no auth)."
+        ),
     )
     parser.add_argument(
         "--bind",
@@ -328,7 +357,7 @@ def main(argv: list[str] | None = None) -> None:
         metavar="URL",
         help="Enable OpenTelemetry tracing and export spans to this OTLP/HTTP "
         "endpoint (requires the [otel] extra). Falls back to "
-        "OTEL_EXPORTER_OTLP_ENDPOINT.",
+        "OTEL_EXPORTER_OTLP_ENDPOINT. Applies to every transport.",
     )
     args = parser.parse_args(argv)
     if args.otel_endpoint or os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
@@ -337,8 +366,8 @@ def main(argv: list[str] | None = None) -> None:
         from iso20022_readiness_suite_mcp.http import transport
 
         transport.run_http(server, args.bind or transport.DEFAULT_BIND)
-    else:
-        server.run()
+        return
+    _transports.run(server, args.transport, args.host, args.port)
 
 
 if __name__ == "__main__":  # pragma: no cover

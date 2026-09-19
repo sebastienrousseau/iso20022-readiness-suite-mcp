@@ -24,7 +24,8 @@ agent can drive to answer "is this payment ready, and if not, fix it".
 > front of your agent: `run_readiness_check` scores a payload against a
 > clearing profile, `remediate_payload` proposes the compliant form, and
 > `simulate_bank_response` mocks how a bank would answer. **v0.0.5**, stdio
-> (default) or streamable HTTP, 4 tools, Python 3.10+.
+> (default), streamable HTTP, SSE or authenticated streamable HTTP, 4 tools,
+> Python 3.10+.
 
 ## Contents
 
@@ -32,6 +33,7 @@ agent can drive to answer "is this payment ready, and if not, fix it".
 - [The ISO 20022 MCP Suite](#the-iso-20022-mcp-suite)
 - [Install](#install)
 - [Quick Start](#quick-start)
+- [Transports](#transports) — stdio, streamable HTTP (2026-07-28 and 2025-11-25), SSE and authenticated HTTP from one command line
 - [Tools](#tools)
 - [HTTP transport & authentication](#http-transport--authentication)
 - [Orchestration & the meta-client pattern](#orchestration--the-meta-client-pattern)
@@ -143,7 +145,7 @@ python -m pip install -U iso20022-readiness-suite-mcp
 For the 10-minute install → MCP client config → first conversation tutorial,
 see [`docs/quickstart.md`](docs/quickstart.md).
 
-Launch the server over stdio (the FastMCP default transport):
+Launch the server over stdio (the default transport):
 
 ```sh
 iso20022-readiness-suite-mcp
@@ -198,6 +200,36 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+## Transports
+
+One command line, four transports:
+
+| Command | Transport | Endpoint | Protocol revisions |
+| :--- | :--- | :--- | :--- |
+| `iso20022-readiness-suite-mcp` | stdio | the client spawns the process | 2026-07-28, 2025-11-25 |
+| `iso20022-readiness-suite-mcp --transport streamable-http` | Streamable HTTP | `http://127.0.0.1:8000/mcp` | 2026-07-28 (stateless, `server/discover`) and 2025-11-25 (`initialize`, `Mcp-Session-Id`) on the same endpoint; responses stream as server-sent events, `GET` opens the server-to-client stream |
+| `iso20022-readiness-suite-mcp --transport sse` | HTTP+SSE (2024-11-05) | `http://127.0.0.1:8000/sse` and `/messages/` | for clients that still expect the older transport |
+| `iso20022-readiness-suite-mcp --transport http` | Authenticated streamable HTTP (see [`http/transport.py`](iso20022_readiness_suite_mcp/http/transport.py)) | `http://127.0.0.1:8080/mcp` (`--bind`) | bearer token or OAuth 2.1, `X-MCP-Tenant` scoping |
+
+`--host` and `--port` change the bind address of `streamable-http` and
+`sse` (defaults `127.0.0.1` and `8000`). Those two carry no
+authentication of their own: bind loopback, or put the server behind a
+gateway you trust before binding a routable address; `--transport http`
+is the authenticated option. Whatever the outer transport, the gateway
+still spawns its sub-servers over stdio and pools those sessions. Every
+release is verified over streamable HTTP with
+[scout](https://github.com/sebastienrousseau/scout) in both protocol
+eras and over SSE with the MCP SDK client; see
+[ADR 0001](docs/adr/0001-three-transports-one-command-line.md).
+
+```json
+{
+  "mcpServers": {
+    "iso20022-readiness-suite": { "url": "http://127.0.0.1:8000/mcp" }
+  }
+}
+```
+
 ## Tools
 
 All tools return JSON-serialisable data; on a domain, validation, or
@@ -222,7 +254,9 @@ process per operator, with no network surface and **no authentication needed**:
 iso20022-readiness-suite-mcp                 # stdio (default)
 ```
 
-For shared, multi-tenant deployments it also offers an **optional
+The suite's unauthenticated `--transport streamable-http` and
+`--transport sse` are described under [Transports](#transports). For
+shared, multi-tenant deployments the gateway also offers an **authenticated
 streamable-HTTP transport**. The default `--bind` is loopback-only
 (`127.0.0.1:8080`); expose it explicitly with `--bind=0.0.0.0:8080`:
 
@@ -325,9 +359,11 @@ open-source tier is time-limited or feature-gated.
   resolvable (via `uvx` or an overridden command map). If you cannot install
   them, you are limited to `list_profiles` and `simulate_bank_response`.
 - **You need a long-lived network service.** stdio (the default) is one
-  process per operator, launched by the client, with no network surface. For
-  shared, multi-tenant deployments use the optional streamable-HTTP transport
-  (`--transport=http`, with OAuth 2.1 or a dev-mode token) — see
+  process per operator, launched by the client, with no network surface.
+  `--transport streamable-http` and `--transport sse` listen on
+  `--host`/`--port` without authentication (see [Transports](#transports));
+  for shared, multi-tenant deployments use the authenticated streamable-HTTP
+  transport (`--transport=http`, with OAuth 2.1 or a dev-mode token) — see
   [HTTP transport & authentication](#http-transport--authentication).
 - **You need streaming responses.** Tool calls return whole values, not
   streams.
@@ -380,6 +416,7 @@ Vulnerability Reporting, not public issues.
 - [`SUPPORT.md`](SUPPORT.md) — how to get help
 - [`ROADMAP.md`](ROADMAP.md) — what's next (sister servers, premium rule-pack entitlement)
 - [`MAINTAINERS.md`](MAINTAINERS.md) — who can merge
+- [`docs/adr/`](docs/adr/index.md) — architecture decision records
 - [`docs/quickstart.md`](docs/quickstart.md) — 10-minute install → first conversation
 - [`docs/transport.md`](docs/transport.md) — the HTTP transport and OAuth 2.1 (RFC 9728) auth setup
 - [`docs/orchestration.md`](docs/orchestration.md) — the meta-client pattern and pointing the gateway at local/remote sub-servers
