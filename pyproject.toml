@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iso20022-readiness-suite-mcp"
-version = "0.0.5"
+version = "0.0.6"
 description = "Orchestration MCP server: ISO 20022 readiness scoring, remediation, and bank-response simulation over the foundational MCP servers."
 authors = ["Sebastien Rousseau <sebastian.rousseau@gmail.com>"]
 license = "Apache-2.0 OR MIT"
@@ -152,6 +152,16 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "defusedxml.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Agent frameworks are optional extras, lazily imported by adapters.py and not
+# present when type-checking the server in isolation.
+module = [
+    "langchain_core.*",
+    "crewai.*",
+    "llama_index.*",
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

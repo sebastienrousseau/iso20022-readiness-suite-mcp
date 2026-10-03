@@ -5,10 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.0.6] - 2026-10-03
 
 ### Added
 
+- Framework adapter module (`iso20022_readiness_suite_mcp.adapters`) exporting
+  readiness suite tools for LangChain, CrewAI, and LlamaIndex agents.
+- `AGENTS.md` defining AI collaboration invariants and verification gates.
+- SPDX Apache-2.0 OR MIT dual license compliance with `LICENSES/` tree.
 - `--transport streamable-http` and `--transport sse`, with `--host` and
   `--port`. Streamable HTTP serves both current protocol revisions
   (2026-07-28 stateless with `server/discover`, and 2025-11-25 with the

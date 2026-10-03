@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check security pip-compile clean examples check
+.PHONY: help install dev test lint format type-check security pip-compile clean examples demo check
 
 PYTHON ?= python3
 POETRY ?= poetry
@@ -56,4 +56,8 @@ examples: ## Verify example scripts run (examples/*.py)
 	done; \
 	if [ "$$found" = 0 ]; then echo "no example scripts found in examples/"; fi
 
+demo: ## Render the README demo GIF with VHS
+	vhs .github/demo.tape
+
 check: lint type-check test ## Run all gates (REQUIRED before commit): lint + type-check + test
+
