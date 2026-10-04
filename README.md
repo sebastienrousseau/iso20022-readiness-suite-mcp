@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+
 # iso20022-readiness-suite-mcp: The ISO 20022 Readiness & Testing Gateway
 
 [![PyPI Version][pypi-badge]][07]
