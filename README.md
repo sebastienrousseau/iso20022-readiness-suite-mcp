@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+
 # iso20022-readiness-suite-mcp: The ISO 20022 Readiness & Testing Gateway
 
 [![PyPI Version][pypi-badge]][07]
@@ -23,9 +25,15 @@ agent can drive to answer "is this payment ready, and if not, fix it".
 > tomorrow. `iso20022-readiness-suite-mcp` puts a single readiness gateway in
 > front of your agent: `run_readiness_check` scores a payload against a
 > clearing profile, `remediate_payload` proposes the compliant form, and
-> `simulate_bank_response` mocks how a bank would answer. **v0.0.5**, stdio
+> `simulate_bank_response` mocks how a bank would answer. **v0.0.6**, stdio
 > (default), streamable HTTP, SSE or authenticated streamable HTTP, 4 tools,
 > Python 3.10+.
+
+<p align="center">
+  <img src=".github/demo.gif" alt="iso20022-readiness-suite-mcp Demo" width="100%" />
+</p>
+
+---
 
 ## Contents
 
