@@ -1,3 +1,4 @@
 # Documentation site tooling for the CI "Docs" job (mkdocs-material).
 # Compiled to docs.txt with hashes via: make pip-compile
 mkdocs-material>=9,<10
+urllib3>=2.8.0
