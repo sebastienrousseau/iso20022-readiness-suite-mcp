@@ -2,3 +2,5 @@
 # Compiled to docs.txt with hashes via: make pip-compile
 mkdocs-material>=9,<10
 urllib3>=2.8.0
+# PYSEC-2026-4320 (GHSA-6q48-6c7w-9gw2), fixed in 2026.10.19.
+certifi>=2026.10.19

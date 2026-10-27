@@ -35,8 +35,9 @@ pip-compile: ## Regenerate hash-pinned requirements/*.txt from requirements/*.in
 	@command -v uv >/dev/null || { echo "uv is required: https://docs.astral.sh/uv/"; exit 1; }
 	@for f in requirements/*.in; do \
 		echo "compiling $$f"; \
+		py=3.10; [ "$$f" = requirements/build.in ] && py=3.12; \
 		uv pip compile --quiet --generate-hashes --universal \
-			--python-version 3.10 "$$f" -o "$${f%.in}.txt"; \
+			--python-version "$$py" "$$f" -o "$${f%.in}.txt"; \
 	done
 
 clean: ## Remove build artifacts and caches
