@@ -5,10 +5,12 @@
 # the FastMCP and pydantic types rather than treating them as untyped.
 # ruff/black are pinned to the exact versions the CI lint job uses so the
 # check stays deterministic across uv recompiles.
-mcp>=1.28.1
+# GHSA-84m7-p3x7-pcfv: mcp <1.30.0 and 2.0.x/2.1.x are affected.
+mcp>=1.30.0,!=2.0.*,!=2.1.*,<3
 pydantic>=2.9,<3
 ruff==0.16.4
-black==26.5.1
+# CVE-2026-114134 affects black before 26.10.1.
+black==26.10.1
 mypy>=1.11,<3.0
 # HTTP transport + OAuth 2.1 resource-server auth, and (evidence-pack)
 # Ed25519 signing -- runtime deps imported by the http subpackage /
@@ -19,3 +21,7 @@ starlette>=1.3.1,<2
 uvicorn>=0.30,<1
 cryptography>=50.0.0,<51
 urllib3>=2.8.0
+# Advisory floors: GHSA-xcq7-p3pf-p88h (opentelemetry-api < 1.45.1) and
+# PYSEC-2026-4320 (certifi < 2026.10.19).
+opentelemetry-api>=1.45.1,<2
+certifi>=2026.10.19
