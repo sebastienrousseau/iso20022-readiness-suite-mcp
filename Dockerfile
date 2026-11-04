@@ -14,7 +14,7 @@
 # runtime environment (mount a populated uv cache, extend this image, or run
 # the sub-servers as sidecars).
 
-FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS builder
+FROM python:3.15-slim@sha256:94d3426f1def7db4a106a232ac121bfd975393e5dfd40a619b955fae45fe7913 AS builder
 
 WORKDIR /build
 
@@ -33,7 +33,7 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install .
 
 
-FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4
+FROM python:3.15-slim@sha256:94d3426f1def7db4a106a232ac121bfd975393e5dfd40a619b955fae45fe7913
 
 LABEL org.opencontainers.image.title="iso20022-readiness-suite-mcp" \
       org.opencontainers.image.description="Orchestration MCP server for ISO 20022 readiness scoring, remediation, and bank-response simulation over the foundational MCP servers." \
